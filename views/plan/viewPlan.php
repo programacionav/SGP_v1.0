@@ -25,7 +25,7 @@ $this->params['breadcrumbs'][] = $this->title;
         ]) ?>
         Google font-->
         <?= Html::a('Agregar Materia', ['materia/create', 'id' => $model->idPlan], ['class' => 'btn btn-primary']) ?>
-         <?= Html::a('Agregar Correlativas', ['correlativa/create', 'idPlan' => $model->idPlan], ['class' => 'btn btn-primary']) ?>
+        
     </p>
 
    
@@ -49,9 +49,9 @@ $this->params['breadcrumbs'][] = $this->title;
      $tabla = "<table class='table table-hover'>"
 		. " <tr><th>Codigo</th><th>Materia</th><th>Anio</th><th>Horas</th><th>Objetivos</th><th>Contenidos</th><th>Correlativas</th><th>Departamento</th><th>Area</th><th>Cursado</th>";
      foreach ($model->materias as $unaMateria){?>
-     	<?= $this->render('//materia/_view', [
-     			'model' => $unaMateria,
-     	    ]) ?>
+     	<?php //$this->render('//materia/_view', [
+     			//'model' => $unaMateria,
+     	  //  ]) ?>
      	
      	<?php $tabla .= "<tr>".
        	'<td>'.$unaMateria->codigo."</td>".
@@ -63,7 +63,7 @@ $this->params['breadcrumbs'][] = $this->title;
      	'<td>'.Html::a('Agregar Correlativas', ['correlativa/create', 'idPlan' => $model->idPlan,'idMateria' => $unaMateria->idMateria], ['class' => 'btn btn-primary'])."</td>".
      	'<td>'.$unaMateria->idDepartamento0->nombre."</td>".
         '<td>'.$unaMateria->area."</td>".
-        '<td>'.Html::a(Html::encode('ver'), ['cursado/index', 'id'=>$unaMateria->idMateria], ['class' => 'btn btn-primary']).'<br>'."</td>"
+        '<td>'.Html::a(Html::encode('ver'), ['cursado/index', 'CursadoSearch[idMateria]'=>$unaMateria->idMateria], ['class' => 'btn btn-primary']).'<br>'."</td>"
             		."</tr>";
      	
      } 
