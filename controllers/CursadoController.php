@@ -35,18 +35,37 @@ class CursadoController extends Controller
      */
     public function actionIndex()
     {
-        $model = new Cursado();
-        $searchModel = new CursadoSearch();
-        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
-        //print_r(Yii::$app->request->queryParams);
-        //exit();
-        $modelMateria=Materia::findOne(Yii::$app->request->queryParams['CursadoSearch']['idMateria']);
-        return $this->render('index', [
-            'searchModel' => $searchModel,
-            'dataProvider' => $dataProvider,
-            'model' => $model,
-        	  'modelMateria'=>$modelMateria,
-        ]);
+        //$cursado = $_GET['CursadoSearch[]'];
+        //if(!isset($cursado)){
+        //  return $this->redirect(['programa/index']);
+        //}else{
+        /*Para  MArce
+          $usuario=yii::$app->user->identity;
+          $docente = $usuario->idDocente0;
+          $cursados = $docente->getIdCursados();
+          $dataProvider = new ActiveDataProvider(
+            $cursados
+          );
+          */
+          $model = new Cursado();
+          $searchModel = new CursadoSearch();
+          $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+          //print_r(Yii::$app->request->queryParams);
+          //exit();
+          if(isset(Yii::$app->request->queryParams['CursadoSearch']['idMateria'])){
+            $modelMateria=Materia::findOne(Yii::$app->request->queryParams['CursadoSearch']['idMateria']);
+            return $this->render('index', [
+              'searchModel' => $searchModel,
+              'dataProvider' => $dataProvider,
+              'model' => $model,
+              'modelMateria'=>$modelMateria,
+            ]);
+          }else{
+            $this->redirect(['programa/index']);
+          }
+
+
+        //}
     }
 
     /**
@@ -67,7 +86,7 @@ class CursadoController extends Controller
      * @return mixed
      */
     public function actionCreate($idMateria)
-    {   
+    {
         $model = new Cursado();
         $materia=Materia::findOne(['idMateria'=>$idMateria]);
         if ($model->load(Yii::$app->request->post()) && $model->save()) {

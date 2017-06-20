@@ -1,5 +1,4 @@
 <?php
-
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
 use yii\helpers\ArrayHelper;
@@ -20,20 +19,8 @@ use yii\base\Object;
  
  
  <?php
- 
-$tabla = "<table class='table table-hover'>"
-		. " <tr><th>Correlativas</th><th>Tipo</th>";
-foreach ($correlativas as $unaCorrelativa){
-	$tabla .= "<tr>".
-			'<td>'.$unaCorrelativa->idMateria20->nombre.'</td>'.
-			'<td>'.$unaCorrelativa->tipo.'</td>'.'<br>'.
-		
-		'</tr>';
-	
-}
- 
-$tabla .= "</table>";
-echo $tabla;
+ echo $model->idMateria10->nombre;
+
 ?>
  <br>
 <?php 
@@ -97,7 +84,8 @@ foreach ($unPlan->materias as $unaMateria)
     
 
     <div class="form-group">
-        <?= Html::submitButton( 'Crear' , ['class' =>  'btn btn-success' ]) ?>
+        <?= Html::submitButton( 'Modificar' , ['class' =>  'btn btn-success' ]) ?>
+        
     
     <?= Html::a('Salir', ['plan/view', 'id' => $unPlan->idPlan], ['class' => 'btn btn-danger']) ?>
  </div>

@@ -53,10 +53,15 @@ class CorrelativaController extends Controller
      * @param integer $idMateria2
      * @return mixed
      */
-    public function actionView($idMateria1, $idMateria2)
+    public function actionView($idMateria)
     {
-        return $this->render('view', [
-            'model' => $this->findModel($idMateria1, $idMateria2),
+    	$Materia=Materia::findOne(['idMateria' => $idMateria]);
+        $correlativas= Correlativa::find()->where(['idMateria1'=>$idMateria])->all();
+        return $this->render('_view', [
+        		 
+        		'Materia' => $Materia,'correlativas'=> $correlativas
+        
+        
         ]);
     }
 
@@ -123,17 +128,18 @@ class CorrelativaController extends Controller
      * @param integer $idMateria2
      * @return mixed
      */
-    public function actionUpdate($idMateria1, $idMateria2)
+    public function actionUpdate($idMateria1,$idMateria2,$idPlan)
     {
-        $model = $this->findModel($idMateria1, $idMateria2);
-
-        if ($model->load(Yii::$app->request->post()) && $model->save()) {
-            return $this->redirect(['view', 'idMateria1' => $model->idMateria1, 'idMateria2' => $model->idMateria2]);
-        } else {
-            return $this->render('update', [
-                'model' => $model,
-            ]);
-        }
+        
+        $unPlan=Plan::findOne(['idPlan' => $idPlan]);
+        $model=Correlativa::findOne(['idMateria1' => $idMateria1,'idMateria2' => $idMateria2]);
+        
+        return $this->render('update', [
+        		 
+        		'unPlan'=>$unPlan,'model'=>$model
+        
+        
+        ]);
     }
 
     /**

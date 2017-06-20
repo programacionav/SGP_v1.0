@@ -9,13 +9,13 @@ use app\models\Docente;
 /* @var $this yii\web\View */
 /* @var $model app\models\Departamento */
 
-$this->title = $model['nombre'];
+$this->title ='Departamento de '. $model['nombre'];
 $this->params['breadcrumbs'][] = ['label' => 'Departamentos', 'url' => ['index']];
 $this->params['breadcrumbs'][] = $this->title;
 ?>
 <div class="departamento-view">
 
-    <h1><?= Html::encode($model['nombre']) ?></h1>
+    <h1>Departamento de <?= Html::encode($model['nombre']) ?></h1>
 
     <p>
 	<?php
@@ -26,10 +26,10 @@ $this->params['breadcrumbs'][] = $this->title;
         echo Html::a('Borrar', ['delete', 'id' => $model->idDepartamento], [
             'class' => 'btn btn-danger',
             'data' => [
-                'confirm' => 'Are you sure you want to delete this item?',
+                'confirm' => 'Esta seguro de borrar este Departamento?',
                 'method' => 'post',
             ],
-        ]); 
+        ]);
 	} ?>
     </p>
 
@@ -39,7 +39,7 @@ $this->params['breadcrumbs'][] = $this->title;
             'nombre',
             [
              'attribute' => 'idDocente',
-             'label' => 'Docente',
+             'label' => 'Director de Departamento',
              'value'=> function ($model) {
 						$itemDocente = ArrayHelper::map(Docente::find()->all(),
 							'idDocente',

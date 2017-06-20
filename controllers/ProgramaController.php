@@ -30,7 +30,7 @@ class ProgramaController extends Controller
         return [
             'access' => [
  'class' => AccessControl::className(),
- 'only' => ['create','update','delete'],
+ 'only' => ['create','update','delete','index'],
  'rules' => [
  [
  'actions' => ['create','update','delete'],
@@ -40,6 +40,11 @@ class ProgramaController extends Controller
  $valid_roles = "acargo";
 return Programa::valDesignado($valid_roles);
  }
+ ],
+ [
+ 'actions' => ['index'],
+ 'allow' => true,
+'roles' => ['@'],
  ],
  ],
  ],
@@ -60,21 +65,18 @@ return Programa::valDesignado($valid_roles);
     {
         $searchModel = new ProgramaSearch();
 
-        if(Rol::findOne(Yii::$app->user->identity->idRol)->esDocente()){
-          $dataProvider = $searchModel->searchDocente(Yii::$app->request->queryParams);
-        }
-        if(Rol::findOne(Yii::$app->user->identity->idRol)->esJefeDpto()){
-            $dataProvider = $searchModel->searchJefe(Yii::$app->request->queryParams);
-        }
-
         if(Rol::findOne(Yii::$app->user->identity->idRol)->esSecAcademico()){
             $dataProvider = $searchModel->searchSecAcademico(Yii::$app->request->queryParams);
         }
-        /*NOTA todos los roles pueden ver los programas publicados de todas las materias. 
-        Ademas todos los roles pueden filtrar por carrera, materia, año, cuatrimestre y cursado para ver programas de cualquier materia y cualquier carrera.*/        
-        //$query->joinWith(['cambioestados','idCursado0.idMateria0.idDepartamento0', 'idCursado0.idMateria0.idPlan0.idCarrera0']);
-
-        
+        else{
+          if(Rol::findOne(Yii::$app->user->identity->idRol)->esJefeDpto()){
+              $dataProvider = $searchModel->searchJefe(Yii::$app->request->queryParams);
+          }else{
+            if(Rol::findOne(Yii::$app->user->identity->idRol)->esDocente()){
+              $dataProvider = $searchModel->searchDocente(Yii::$app->request->queryParams);
+            } 
+          }
+        }
 
         return $this->render('index', [
             'searchModel' => $searchModel,
@@ -238,9 +240,9 @@ if(Rol::findOne(Yii::$app->user->identity->idRol)->esDocente()){
 
 
 
-  public function actionCambiarestado($id = null){
+  public function actionCambiarestado($proxEstado = null){
       //esto no se si sera lo mejor,pero funciona
-      if(Rol::findOne(Yii::$app->user->identity->idRol)->esJefeDpto()){
+     /* if(Rol::findOne(Yii::$app->user->identity->idRol)->esJefeDpto()){
         if($id!=null){
           $estadoPrograma = $id ;
       }else{$estadoPrograma = 2;}
@@ -250,7 +252,8 @@ if(Rol::findOne(Yii::$app->user->identity->idRol)->esDocente()){
 
 }elseif(Rol::findOne(Yii::$app->user->identity->idRol)->esDocente()){
     $estadoPrograma = 4; 
-}
+}*/
+$estadoPrograma = $proxEstado;
     $exito = false;
     $postData = Yii::$app->request->get();
     $idEstado = $estadoPrograma; //detectar estado dependiendo del rol, cambiame esto man!

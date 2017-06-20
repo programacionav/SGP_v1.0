@@ -74,6 +74,20 @@ class UsuarioController extends Controller
         ]);
     }
 
+    public function actionCambiarASecretario($idUsuario){
+        $model=$this->findModel($idUsuario);
+        $model->idRol=3;
+        $model->save();
+        return $this->redirect(['index']);
+    }
+
+    public function actionActivarUsuario($id){
+        $model=$this->findModel($id);
+        $model->estado=1;
+        $model->save();
+        return $this->redirect(['index']);
+    }
+
     /**
      * Displays a single Usuario model.
      * @param integer $id
@@ -154,7 +168,13 @@ class UsuarioController extends Controller
     public function actionDelete($id)
     {
         $this->findModel($id)->delete();
-
+      
+        return $this->redirect(['index']);
+    }
+    public function actionDesactivarUsuario($id){
+        $model=$this->findModel($id);
+        $model->estado=0;
+        $model->save();
         return $this->redirect(['index']);
     }
 

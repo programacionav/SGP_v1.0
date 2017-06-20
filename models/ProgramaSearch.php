@@ -41,68 +41,13 @@ class ProgramaSearch extends Programa
         return Model::scenarios();
     }
 
-    /**
-     * Creates data provider instance with search query applied
-     *
-     * @param array $params
-     *
-     * @return ActiveDataProvider
-     */
-    /*public function search($params)
-    {
-        $query = Programa::find();
 
-        // add conditions that should always apply here
-
-        $dataProvider = new ActiveDataProvider([
-            'query' => $query,
-        ]);
-
-        $this->load($params);
-
-        if (!$this->validate()) {
-            // uncomment the following line if you do not want to return any records when validation fails
-            // $query->where('0=1');
-            return $dataProvider;
-        }
-
-        // grid filtering conditions
-        $query->andFilterWhere([
-            'programa.idPrograma' => $this->idPrograma,
-            'programa.idCursado' => $this->idCursado,
-            'programa.anioActual' => $this->anioActual,
-            'materia.codigo' => $this->idMateria,
-            'cambioestado.idEstadoP' => $this->idEstadoP,
-            'carrera.idCarrera' => $this->idCarrera,
-            'departamento.idDepartamento' => $this->idDepartamento,
-            'plan.idPlan' => $this->idPlan,
-        ]);
-
-        $query->andFilterWhere(['like', 'orientacion', $this->orientacion])
-            ->andFilterWhere(['like', 'programaAnalitico', $this->programaAnalitico])
-            ->andFilterWhere(['like', 'propuestaMetodologica', $this->propuestaMetodologica])
-            ->andFilterWhere(['like', 'condicionesAcredEvalu', $this->condicionesAcredEvalu])
-            ->andFilterWhere(['like', 'horariosConsulta', $this->horariosConsulta])
-            ->andFilterWhere(['like', 'bibliografia', $this->bibliografia])
-            ->andFilterWhere(['like', 'bibliografia', $this->bibliografia])
-            ->andFilterWhere(['like', 'cursado.cuatrimestre', $this->cuatrimestre]);
-
-        return $dataProvider;
-    }*/
 
     public function searchDocente($params)
     {
-        /*
-        Si es docente filtro por los programas que esten a su cargo y los que sean de su departamento siempre y cuando esten publicados. Ordenado por año materia cuatrimestre (descripcion) y cursado
-        */
         $query = Programa::find();
 
         // add conditions that should always apply here
-        $query->joinWith(['cambioestados','idCursado0.idMateria0']);
-        //.departamentodocentecargos
-
-        //PENDIENTE VALIDAR EL DEPARTAMENTO DEL DOCENTE Y LOS PROGRAMAS PUBLICADOS
-          //  $query->andFilterWhere(['materia.idDepartamento'=>DepartamentoDocenteCargo::find()->where(['idDocente'=>Yii::$app->user->identity->id])->one()->idDepartamento]);            
 
         $dataProvider = new ActiveDataProvider([
             'query' => $query,
@@ -110,29 +55,39 @@ class ProgramaSearch extends Programa
 
         $this->load($params);
 
-        if(isset($this->idEstadoP))
-        {
-            $query->andWhere('(SELECT idEstadoP FROM cambioestado WHERE idCambioEstado = (SELECT max(idCambioEstado) FROM cambioestado)) ='.$this->idEstadoP);
-        }else{
-           /* WHERE DPTO DEL DOCENTE
-            SELECT * FROM departamentodocentecargo WHERE idDocente = logueadoDocente
-
-            SELECT * FROM programa INNER JOIN cursado ON cursado.idCursado = programa.idCursado 
-            INNER JOIN materia On materia.idCursado = cursado.idCursado WHERE materia.idDepartamento <> dptoDocente AND programa.idEstadoP = 3*/
-
+        //Si es a cargo le muestro los abiertos y en revision que haya creado el como docente
+        //Si es a cargo o no lo es le muestro ademas los publicados
+        $query->joinWith(['idCursado0.idMateria0']);
+        if(Designado::find()->where(['idDocente'=>Usuario::find()->where(['idUsuario'=>Yii::$app->user->identity->id])->one()->idDocente,'funcion'=>'acargo'])->count()>0)
+        {            
             $query->andWhere('( 
-                (materia.idDepartamento IN (SELECT idDepartamento FROM departamentodocentecargo WHERE idDocente = '.Usuario::find()->where(['idUsuario'=>Yii::$app->user->identity->id])->one()->idDocente.')
-                    AND ((SELECT idEstadoP FROM cambioestado WHERE idCambioEstado = (SELECT max(idCambioEstado) FROM cambioestado)) IN (1,3,4))
+                materia.idDepartamento IN (SELECT idDepartamento FROM departamentodocentecargo WHERE idDocente = '.Usuario::find()->where(['idUsuario'=>Yii::$app->user->identity->id])->one()->idDocente.')
+                AND (
+                        (SELECT idEstadoP FROM cambioestado 
+                        WHERE idCambioEstado = (SELECT max(idCambioEstado) FROM cambioestado WHERE cambioestado.idPrograma = programa.idPrograma)
+                        ) IN (1,4)
+                    )
+                OR (
+                        (SELECT idUsuario FROM cambioestado 
+                        WHERE idCambioEstado = (SELECT min(idCambioEstado) FROM cambioestado WHERE cambioestado.idPrograma = programa.idPrograma)
+                        ) IN ('.Usuario::find()->where(['idUsuario'=>Yii::$app->user->identity->id])->one()->idDocente.')
+                    )
                 )
                 OR 
                 (
-                materia.idDepartamento NOT IN (SELECT idDepartamento FROM departamentodocentecargo WHERE idDocente = '.Usuario::find()->where(['idUsuario'=>Yii::$app->user->identity->id])->one()->idDocente.') 
-                    AND (
-                            (SELECT idEstadoP FROM cambioestado WHERE idCambioEstado = (SELECT max(idCambioEstado) FROM cambioestado)) = 3
-                        )
+                    (SELECT idEstadoP FROM cambioestado 
+                        WHERE idCambioEstado = (SELECT max(idCambioEstado) FROM cambioestado WHERE cambioestado.idPrograma = programa.idPrograma)
+                        ) IN (3)
                 )
-            ) ');    
+                 ');
         }
+        else{
+
+            $query->andWhere('
+                (SELECT idEstadoP FROM cambioestado WHERE idCambioEstado = (SELECT max(idCambioEstado) FROM cambioestado WHERE cambioestado.idPrograma = programa.idPrograma)) IN (3)
+                AND 
+                materia.idDepartamento IN (SELECT idDepartamento FROM departamentodocentecargo WHERE idDocente = '.Usuario::find()->where(['idUsuario'=>Yii::$app->user->identity->id])->one()->idDocente.')');
+        }        
 
         if (!$this->validate()) {
             // uncomment the following line if you do not want to return any records when validation fails
@@ -148,9 +103,19 @@ class ProgramaSearch extends Programa
             'materia.codigo' => $this->idMateria,
             'cambioestado.idEstadoP' => $this->idEstadoP,
             'carrera.idCarrera' => $this->idCarrera,
-            'departamento.idDepartamento' => $this->idDepartamento,
-            'plan.idPlan' => $this->idPlan,
+            'materia.idDepartamento' => $this->idDepartamento,
         ]);
+
+        if((isset($this->idCarrera) && is_numeric($this->idCarrera)) || isset($this->idPlan) && is_numeric($this->idPlan))
+        {
+            $query->joinWith(['idCursado0.idMateria0.idPlan0.idCarrera0']);
+
+            $query->andFilterWhere([            
+                'carrera.idCarrera' => $this->idCarrera,
+                'plan.idPlan' => $this->idPlan,     
+            ]);
+        }
+        
 
         $query->andFilterWhere(['like', 'orientacion', $this->orientacion])
             ->andFilterWhere(['like', 'programaAnalitico', $this->programaAnalitico])
@@ -166,36 +131,51 @@ class ProgramaSearch extends Programa
 
     public function searchJefe($params)
     {
-        /*Si es jefedpto filtro por su departameto y ordeno por año materia cuatrimestre y cursado, este no puede ver los programas de otros dptos. Ordenado por año materia cuatrimestre (descripcion) y cursado*/
+        //Si es a cargo le muestro los abiertos y en revision que haya creado el como docente
+        //Si es a cargo o no lo es, le muestro ademas los que esten en revision y/o aprobado que sean de su dpto y los que 
+
         $query = Programa::find();
-
-        // add conditions that should always apply here
-        $query->joinWith(['cambioestados','idCursado0.idMateria0.idDepartamento0']);
-
-        //PENDIENTE VALIDAR EL DEPARTAMENTO DEL DOCENTE 
-
-        $query->andFilterWhere(['materia.idDepartamento'=>DepartamentoDocenteCargo::find()->where(['idDocente'=>Usuario::find()->where(['idUsuario'=>Yii::$app->user->identity->id])->one()->idDocente])->one()->idDepartamento]);            
-
-        //Busco ultimo estado del programa y verifico que este en revision
-        
-
 
         $dataProvider = new ActiveDataProvider([
             'query' => $query,
         ]);
 
-        
-
-
         $this->load($params);
 
-        if(isset($this->idEstadoP))
-        {
-            $query->andWhere('(SELECT idEstadoP FROM cambioestado WHERE idCambioEstado = (SELECT max(idCambioEstado) FROM cambioestado)) ='.$this->idEstadoP);
-        }else{
-            $query->andWhere('(SELECT idEstadoP FROM cambioestado WHERE idCambioEstado = (SELECT max(idCambioEstado) FROM cambioestado)) IN (2,3,4)');
+        $query->joinWith(['idCursado0.idMateria0']);
 
-            //$query->andFilterWhere(['cambioestado.idEstadoP' =>3]);
+        if(Designado::find()->where(['idDocente'=>Usuario::find()->where(['idUsuario'=>Yii::$app->user->identity->id])->one()->idDocente,'funcion'=>'acargo'])->count()>0)
+        {
+            
+            $query->andWhere('( 
+                materia.idDepartamento IN (SELECT idDepartamento FROM departamentodocentecargo WHERE idDocente = '.Usuario::find()->where(['idUsuario'=>Yii::$app->user->identity->id])->one()->idDocente.')
+                AND (
+                        (SELECT idEstadoP FROM cambioestado 
+                        WHERE idCambioEstado = (SELECT max(idCambioEstado) FROM cambioestado WHERE cambioestado.idPrograma = programa.idPrograma)
+                        ) IN (1,4)
+                    )
+                OR (
+                        (SELECT idUsuario FROM cambioestado 
+                        WHERE idCambioEstado = (SELECT min(idCambioEstado) FROM cambioestado WHERE cambioestado.idPrograma = programa.idPrograma)
+                        ) IN ('.Usuario::find()->where(['idUsuario'=>Yii::$app->user->identity->id])->one()->idDocente.')
+                    )
+                ) ');
+
+                $query->orWhere('(SELECT idEstadoP FROM cambioestado WHERE idCambioEstado = (SELECT max(idCambioEstado) FROM cambioestado WHERE cambioestado.idPrograma = programa.idPrograma)) IN (2,3)
+                    AND materia.idDepartamento IN (SELECT idDepartamento FROM departamento WHERE idDocente = '.Usuario::find()->where(['idUsuario'=>Yii::$app->user->identity->id])->one()->idDocente.')');  
+
+        }
+        else{
+            if(DepartamentoDocenteCargo::find()->where(['idDocente'=>Usuario::find()->where(['idUsuario'=>Yii::$app->user->identity->id])->one()->idDocente])->count()>0)
+            {
+                $query->andFilterWhere(['materia.idDepartamento'=>DepartamentoDocenteCargo::find()->where(['idDocente'=>Usuario::find()->where(['idUsuario'=>Yii::$app->user->identity->id])->one()->idDocente])->one()->idDepartamento]);    
+            }
+            
+            $query->orWhere('((SELECT idEstadoP FROM cambioestado WHERE idCambioEstado = (SELECT max(idCambioEstado) FROM cambioestado WHERE cambioestado.idPrograma = programa.idPrograma)) IN (2,4)
+                    AND materia.idDepartamento IN (SELECT idDepartamento FROM departamento WHERE idDocente = '.Usuario::find()->where(['idUsuario'=>Yii::$app->user->identity->id])->one()->idDocente.'))
+                OR (
+                    (SELECT idEstadoP FROM cambioestado WHERE idCambioEstado = (SELECT max(idCambioEstado) FROM cambioestado WHERE cambioestado.idPrograma = programa.idPrograma)) IN (3)
+                )');  
         }
 
 
@@ -206,16 +186,25 @@ class ProgramaSearch extends Programa
         }
         
 
-        // grid filtering conditions
         $query->andFilterWhere([
             'programa.idPrograma' => $this->idPrograma,
             'programa.idCursado' => $this->idCursado,
             'programa.anioActual' => $this->anioActual,
             'materia.codigo' => $this->idMateria,
+            'cambioestado.idEstadoP' => $this->idEstadoP,
             'carrera.idCarrera' => $this->idCarrera,
-            'departamento.idDepartamento' => $this->idDepartamento,
-            'plan.idPlan' => $this->idPlan,
+            'materia.idDepartamento' => $this->idDepartamento,
         ]);
+
+        if((isset($this->idCarrera) && is_numeric($this->idCarrera)) || isset($this->idPlan) && is_numeric($this->idPlan))
+        {
+            $query->joinWith(['idCursado0.idMateria0.idPlan0.idCarrera0']);
+
+            $query->andFilterWhere([            
+                'carrera.idCarrera' => $this->idCarrera,
+                'plan.idPlan' => $this->idPlan,     
+            ]);
+        }
 
         $query->andFilterWhere(['like', 'orientacion', $this->orientacion])
             ->andFilterWhere(['like', 'programaAnalitico', $this->programaAnalitico])
@@ -231,26 +220,41 @@ class ProgramaSearch extends Programa
 
     public function searchSecAcademico($params)
     {
-        /*Si es sec academico filtro los programas publicados ordenados por año, carrera, materia, cuatrimestre (descripcion) y crusado. (Este no puede ver otros programas que no esten publicados, pero si ve aquellos que esten pendientes de publicar por el.)*/
-        $query = Programa::find();
+        //Si es a cargo le muestro los abiertos y en revision que haya creado el como docente
+        //Si es a cargo o no lo es le muestro ademas los publicos y los aprobados 
 
-        // add conditions that should always apply here
-        //$query->joinWith(['cambioestados']);
+        $query = Programa::find();
 
         $dataProvider = new ActiveDataProvider([
             'query' => $query,
-        ]);
+        ]);        
 
         $this->load($params);
 
-        if(isset($this->idEstadoP))
+        if(Designado::find()->where(['idDocente'=>Usuario::find()->where(['idUsuario'=>Yii::$app->user->identity->id])->one()->idDocente,'funcion'=>'acargo'])->count()>0)
         {
-            $query->andWhere('(SELECT idEstadoP FROM cambioestado WHERE idCambioEstado = (SELECT max(idCambioEstado) FROM cambioestado)) ='.$this->idEstadoP);
-        }else{
-            $query->andWhere('(SELECT idEstadoP FROM cambioestado WHERE idCambioEstado = (SELECT max(idCambioEstado) FROM cambioestado)) IN (2,3)');
+            $query->joinWith(['idCursado0.idMateria0']);
+            //
+            $query->andWhere('( 
+                materia.idDepartamento IN (SELECT idDepartamento FROM departamentodocentecargo WHERE idDocente = '.Usuario::find()->where(['idUsuario'=>Yii::$app->user->identity->id])->one()->idDocente.')
+                AND (
+                        (SELECT idEstadoP FROM cambioestado 
+                        WHERE idCambioEstado = (SELECT max(idCambioEstado) FROM cambioestado WHERE cambioestado.idPrograma = programa.idPrograma)
+                        ) IN (1,4)
+                    )
+                AND (
+                        (SELECT idUsuario FROM cambioestado 
+                        WHERE idCambioEstado = (SELECT min(idCambioEstado) FROM cambioestado WHERE cambioestado.idPrograma = programa.idPrograma)
+                        ) IN ('.Usuario::find()->where(['idUsuario'=>Yii::$app->user->identity->id])->one()->idDocente.')
+                    )
+                ) ');
 
-            //$query->andFilterWhere(['cambioestado.idEstadoP' =>3]);
+                $query->orWhere('(SELECT idEstadoP FROM cambioestado WHERE idCambioEstado = (SELECT max(idCambioEstado) FROM cambioestado WHERE cambioestado.idPrograma = programa.idPrograma)) IN (2,3)');  
+
         }
+        else{
+            $query->andWhere('(SELECT idEstadoP FROM cambioestado WHERE idCambioEstado = (SELECT max(idCambioEstado) FROM cambioestado WHERE cambioestado.idPrograma = programa.idPrograma)) IN (2,3)');
+        }        
 
         if (!$this->validate()) {
             // uncomment the following line if you do not want to return any records when validation fails
@@ -263,12 +267,25 @@ class ProgramaSearch extends Programa
             'programa.idPrograma' => $this->idPrograma,
             'programa.idCursado' => $this->idCursado,
             'programa.anioActual' => $this->anioActual,
-            'materia.codigo' => $this->idMateria,
-            //'cambioestado.idEstadoP' => self::PUBLICADO,
+            
+            'cambioestado.idEstadoP' => $this->idEstadoP,
             'carrera.idCarrera' => $this->idCarrera,
-            'departamento.idDepartamento' => $this->idDepartamento,
-            'plan.idPlan' => $this->idPlan,
+            
         ]);
+
+        if((isset($this->idCarrera) && is_numeric($this->idCarrera)) || isset($this->idPlan) && is_numeric($this->idPlan) || isset($this->idDepartamento) && is_numeric($this->idDepartamento)  || isset($this->idMateria) && is_numeric($this->idMateria) || isset($this->cuatrimestre) && is_numeric($this->cuatrimestre))
+        {
+            $query->joinWith(['idCursado0.idMateria0.idPlan0.idCarrera0']);
+
+            $query->andFilterWhere([            
+                'carrera.idCarrera' => $this->idCarrera,
+                'plan.idPlan' => $this->idPlan, 
+                'materia.idDepartamento' => $this->idDepartamento,
+                'materia.codigo' => $this->idMateria,
+            ]);
+
+            $query->andFilterWhere(['like', 'cursado.cuatrimestre', $this->cuatrimestre]);
+        }
 
         $query->andFilterWhere(['like', 'orientacion', $this->orientacion])
             ->andFilterWhere(['like', 'programaAnalitico', $this->programaAnalitico])
@@ -276,8 +293,7 @@ class ProgramaSearch extends Programa
             ->andFilterWhere(['like', 'condicionesAcredEvalu', $this->condicionesAcredEvalu])
             ->andFilterWhere(['like', 'horariosConsulta', $this->horariosConsulta])
             ->andFilterWhere(['like', 'bibliografia', $this->bibliografia])
-            ->andFilterWhere(['like', 'bibliografia', $this->bibliografia])
-            ->andFilterWhere(['like', 'cursado.cuatrimestre', $this->cuatrimestre]);
+            ->andFilterWhere(['like', 'bibliografia', $this->bibliografia]);
 
         return $dataProvider;
     }
